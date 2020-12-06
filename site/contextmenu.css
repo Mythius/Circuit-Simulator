@@ -1,0 +1,21 @@
+ctx{
+	position: fixed;
+	background-color: white;
+	border: 1px solid gray;
+	width: 200px;
+	box-sizing: border-box;
+}
+ctx > item{
+	display: block;
+	border-bottom: 1px solid gray;
+	transition: background-color .2s;
+	padding: 3px;
+	color: black;
+	cursor: default;
+}
+ctx > item:hover{
+	background-color: gray;
+}
+ctx > item:last-of-type{
+	border-bottom: 0;
+}
