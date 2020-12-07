@@ -19,6 +19,12 @@ top > *{
 top > button:hover{
 	background-color: #444;
 }
+top > input[type=number]{
+	width: 80px;
+}
+button{
+	user-select: none;
+}
 #editor{
 	background-color: #222;
 }

@@ -44,7 +44,7 @@ class Wire{
 		this.calcOutput();
 		ctx.beginPath();
 		ctx.strokeStyle = this.color;
-		ctx.strokeWidth = 5;
+		ctx.lineWidth = 5;
 		if(this.closed){
 			ctx.moveTo(this.points[0].x,this.points[0].y);
 			for(let i=1;i<this.points.length;i++){
@@ -142,7 +142,7 @@ class Input{
 		ctx.beginPath();
 		ctx.fillStyle = this.value ? '#f00' : '#888';
 		ctx.strokeStyle = 'black';
-		ctx.strokeWidth = 5;
+		ctx.lineWidth = 5;
 		ctx.moveTo(this.pos.x,this.pos.y);
 		ctx.lineTo(this.node.pos.x,this.node.pos.y);
 		ctx.stroke();
@@ -173,7 +173,7 @@ class Output{
 		ctx.beginPath();
 		ctx.fillStyle = this.value ? '#f00' : '#888';
 		ctx.strokeStyle = 'black';
-		ctx.strokeWidth = 5;
+		ctx.lineWidth = 5;
 		ctx.moveTo(this.pos.x,this.pos.y);
 		ctx.lineTo(this.node.pos.x,this.node.pos.y);
 		ctx.stroke();
@@ -298,6 +298,9 @@ class Board{
 		}
 		ix = CurrentBoard.boards.indexOf(this);
 		CurrentBoard.boards.splice(ix,1);
+		for(let wire of this.inputs.concat(this.outputs).map(e=>e.wires).flat()){
+			wire.remove();
+		}
 	}
 	// calcOutput(){} // Overwrite
 }
@@ -378,6 +381,7 @@ class ShortcutFolder{
 		let height = canvas.height - y*2;
 		ctx.beginPath();
 		ctx.strokeStyle = '#444';
+		ctx.lineWidth = 5;
 		ctx.rect(x,y,width,height);
 		ctx.stroke();
 	}
@@ -398,7 +402,7 @@ class ShortcutFolder{
 				CurrentBoard.inputs.push(new Input);
 			}
 		} else {
-			while(Comonent.inputs.length > amount){
+			while(CurrentBoard.inputs.length > amount){
 				CurrentBoard.inputs.pop();
 			}
 		}
@@ -421,7 +425,7 @@ class ShortcutFolder{
 				CurrentBoard.outputs.push(new Output);
 			}
 		} else {
-			while(Comonent.outputs.length > amount){
+			while(CurrentBoard.outputs.length > amount){
 				CurrentBoard.outputs.pop();
 			}
 		}
@@ -455,5 +459,16 @@ class ShortcutFolder{
 		for(let board of this.boards) board.draw();
 		for(let wire of this.wires) wire.draw();
 		if(this.cur_wire) this.cur_wire.draw();
+	}
+
+	CurrentBoard.clear = function(){
+		// this.inputs = [];
+		// this.outputs = [];
+		this.boards = [];
+		this.wires = [];
+
+		this.cur_node = null;
+		this.cur_wire = null;
+		this.cur_chip = null;
 	}
 })(this);
