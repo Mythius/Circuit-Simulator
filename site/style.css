@@ -1,0 +1,45 @@
+body{
+	margin: 0;
+}
+main{
+	display: block;
+	width: 100%;
+	background-color: #444;
+}
+top > *{
+	display: inline-block;
+	font-size: 20px;
+	background-color: #222;
+	color: white;
+	font-family: monospace;
+	outline: 0;
+	border: 1px solid black;
+	transition: background-color .2s;
+}
+top > button:hover{
+	background-color: #444;
+}
+#editor{
+	background-color: #222;
+}
+#center{
+	display: grid;
+	grid-template-columns: 1000px calc(100% - 1000px);
+}
+#components{
+	background-color: #888;
+}
+.comp{
+	display: block;
+	width: 80%;
+	background-color: #222;
+	color: white;
+	border: 3px solid black;
+	margin: auto;
+	margin-top: 5px;
+	margin-bottom: 5px;
+	transition: background-color .3s;
+}
+.comp:hover{
+	background-color: #444;
+}
