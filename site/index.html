@@ -20,6 +20,9 @@
 			<button id=clear>Clear</button>
 			<input id=input type=number placeholder=inputs min=0>
 			<input id=output type=number placeholder=outputs min=0>
+			<input type="checkbox" id="moveComponents" title='When checked you can only Edit Wires'>
+			<button id=download>Download Chips</button>
+			<button onclick="this.children[0].click()"><input accept=".json" id=upload type="file">Upload Chips</button>
 		</top>
 		<div id=center>
 			<canvas id=editor width=1000 height=600></canvas>

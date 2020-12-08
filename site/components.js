@@ -118,11 +118,12 @@ class Wire{
 }
 
 class Input{
-	constructor(vector=new Vector){
+	constructor(ix,vector=new Vector){
 		this.pos = vector;
 		this.length = 50;
 		this.radius = 20;
-		this.node = new ConnectorNode('OUTPUT',new Vector(this.pos.x+this.length,this.pos.y));
+		this.index = ix;
+		this.node = new ConnectorNode('OUTPUT',this,ix,new Vector(this.pos.x+this.length,this.pos.y));
 		this.value = false;
 		this.mouseOver = false;
 	}
@@ -161,11 +162,13 @@ class Input{
 }
 
 class Output{
-	constructor(vector=new Vector){
+	constructor(ix,vector=new Vector){
 		this.pos = vector;
 		this.length = -50;
 		this.radius = 20;
-		this.node = new ConnectorNode('INPUT',new Vector(this.pos.x+this.length,this.pos.y));
+		this.index = ix;
+		this.node = new ConnectorNode('INPUT',this,ix,new Vector(this.pos.x+this.length,this.pos.y));
+		this.node.source = this;
 		this.value = false;
 		this.mouseOver = false;
 	}
@@ -192,13 +195,15 @@ class Output{
 }
 
 class ConnectorNode{
-	constructor(type='INPUT',vector=new Vector){
+	constructor(type='INPUT',source=null,index=0,vector=new Vector){
 		this.pos = vector;
 		this.radius = 5;
 		this.color = 'black';
 		this.data = false;
 		this.type = type;
 		this.wires = [];
+		this.index = index;
+		this.source = source;
 	}
 	draw(){
 		ctx.beginPath();
@@ -245,8 +250,8 @@ class Board{
 		this.outputs = [];
 		this.name = name;
 		this.offsetMouse = new Vector;
-		for(let i=0;i<inputs;i++) this.inputs.push(new ConnectorNode('INPUT'));
-		for(let i=0;i<outputs;i++) this.outputs.push(new ConnectorNode('OUTPUT'));
+		for(let i=0;i<inputs;i++) this.inputs.push(new ConnectorNode('INPUT',this,i));
+		for(let i=0;i<outputs;i++) this.outputs.push(new ConnectorNode('OUTPUT',this,i));
 	}
 	moveTo(vec){
 		this.pos = vec;
@@ -262,7 +267,7 @@ class Board{
 		}
 	}
 	draw(){
-		if(mouse.down){
+		if(mouse.down && CurrentBoard.moveChips){
 			if(CurrentBoard.cur_chip == this){
 				let mp = new Vector(mouse.pos.x,mouse.pos.y);
 				this.moveTo(mp.add(this.offsetMouse));
@@ -277,8 +282,9 @@ class Board{
 				}
 
 			}
-		} else {
-			// CurrentBoard.cur_chip = null;
+		} else if(!CurrentBoard.moveChips && CurrentBoard.cur_chip == this){
+			CurrentBoard.cur_chip.color = '#88f';
+			CurrentBoard.cur_chip = null;
 		}
 		this.calcOutput();
 		ctx.beginPath();
@@ -302,7 +308,7 @@ class Board{
 			wire.remove();
 		}
 	}
-	// calcOutput(){} // Overwrite
+	// calcOutput(){} // Overwrite // Visual Board on Screen
 }
 
 class BuiltInBoard extends Board{
@@ -320,18 +326,133 @@ class BuiltInBoard extends Board{
 }
 
 class CustomBoard extends Board{
-	constructor(){
+	constructor(json){
+		let pb = new PackagedBoard(json);
+		super(pb.name,pb.input_number,pb.output_number);
+		this.pb = pb;
+	}
+	calcOutput(){
+		this.pb.inputs = this.inputs.map(e=>e.data);
+		let v = this.pb.calcOutput();
+		for(let i=0;i<v.length;i++){
+			this.outputs[i].value = v[i];
+		}
+	}
+}
 
+class VirtualBoard{
+	constructor(name,callback){
+		this.name = name;
+		this.callback = callback;
+		this.inputs = [];
+		this.outputs = [];
+	}
+	calcOutput(){
+		this.outputs = this.callback(this.inputs);
+		return this.outputs;
+	}
+}
+
+class PackagedBoard{
+	static createAND(){
+		return new VirtualBoard('AND',inputs=>[inputs[0]&&inputs[1]]);
+	}
+	static createNOT(){
+		return new VirtualBoard('NOT',inputs=>[!inputs[0]]);
+	}
+	static createOR(){
+		return new VirtualBoard('OR',inputs=>[inputs[0]||inputs[1]]);
+	}
+	static customBoards = {};
+	static builtInBoards = ['AND','OR','NOT'];
+	constructor(json){
+		// {
+		// 		name: 'string',
+		// 		input_count: number,
+		// 		output_count: number,
+		// 		boards: [
+		// 				'AND',
+		// 				'NOT',
+		// 				...
+		// 		],
+		// 		connections: 
+		// 		[
+		// 				{from: inputs[0], to: 'board_index#input_number'},
+		// 				{from: board_index#output_number, to: 'board_index#input_number'},
+		// 				{from: board_index#output_number, to: inputs[0]},
+		//  			...
+		// 		]
+		// }
+		let obj = JSON.parse(json);
+		this.name = obj.name;
+		this.input_number = obj.input_count;
+		this.output_number = obj.output_count;
+		this.boards = [];
+		this.connections = obj.connections;
+		this.inputs = [];
+		this.outputs = [];
+		let ix = 0;
+		for(let board of obj.boards){
+			if(PackagedBoard.builtInBoards.includes(board)){
+				let bd = PackagedBoard[`create${board.toUpperCase()}`]();
+				bd.id = ix;
+				this.boards.push(bd);
+			} else if(board in PackagedBoard.customBoards){
+				let bd = new PackagedBoard(PackagedBoard.customBoards[board]);
+				bd.id = ix;
+				this.boards.push(bd);
+			}
+			ix++;
+		}
+	}
+	calcOutput(){
+		for(let con of this.connections){
+			let v = this.getValue(con);
+			this.setValue(v,con);
+		}
+		return this.outputs;
+	}
+	getValue(con){
+		let from = con.from;
+		if(typeof from == 'number'){
+			return this.inputs[from];
+		} else {
+			let board_index = Number(con.from.split('#')[0]);
+			let output_number = Number(con.from.split('#')[1]);
+			let board = this.boards[board_index];
+			return board.calcOutput()[output_number];
+		}
+	}
+	setValue(value,con){
+		let to = con.to;
+		if(typeof to == 'number'){
+			this.outputs[to] = value;
+		} else {
+			let board_index = Number(con.to.split('#')[0]);
+			let input_number = Number(con.to.split('#')[1]);
+			let board = this.boards[board_index];
+			board.inputs[input_number] = value;
+		}
 	}
 }
 
 class Shortcut{
+	static CustomPieces = [];
 	constructor(callback,name,inputs,outputs){
+		if(typeof callback == 'string'){
+			Shortcut.CustomPieces.push({name,data:callback});
+			PackagedBoard.customBoards[name] = callback;
+		}
 		let el = create('button',name);
 		this.name = name;
 		el.classList.add('comp');
 		el.on('click',e=>{
-			let board = new BuiltInBoard(callback,name,inputs,outputs);
+			let board;
+			if(typeof callback == 'string'){
+				board = new CustomBoard(callback);
+			} else if(typeof callback == 'function'){
+				board = new BuiltInBoard(callback,name,inputs,outputs);
+			}
 			if(CurrentBoard.cur_chip){
 				CurrentBoard.cur_chip.color = '#88f';
 			}
@@ -376,6 +497,8 @@ class ShortcutFolder{
 	CurrentBoard.cur_wire = null;
 	CurrentBoard.cur_chip = null;
 
+	CurrentBoard.moveChips = true;
+
 	function drawOutline(){
 		let width = canvas.width - x*2;
 		let height = canvas.height - y*2;
@@ -399,7 +522,7 @@ class ShortcutFolder{
 	CurrentBoard.setInputs = function(amount){
 		if(amount > CurrentBoard.inputs.length){
 			while(CurrentBoard.inputs.length < amount){
-				CurrentBoard.inputs.push(new Input);
+				CurrentBoard.inputs.push(new Input(CurrentBoard.inputs.length));
 			}
 		} else {
 			while(CurrentBoard.inputs.length > amount){
@@ -422,7 +545,7 @@ class ShortcutFolder{
 	CurrentBoard.setOutputs = function(amount){
 		if(amount > CurrentBoard.outputs.length){
 			while(CurrentBoard.outputs.length < amount){
-				CurrentBoard.outputs.push(new Output);
+				CurrentBoard.outputs.push(new Output(CurrentBoard.outputs.length));
 			}
 		} else {
 			while(CurrentBoard.outputs.length > amount){
@@ -437,6 +560,7 @@ class ShortcutFolder{
 	}
 
 	CurrentBoard.draw = function(){
+		this.moveChips = !obj('#moveComponents').checked;
 		var col;
 		if(this.cur_chip){
 			col = this.cur_chip.color;
@@ -467,8 +591,46 @@ class ShortcutFolder{
 		this.boards = [];
 		this.wires = [];
 
+		for(let input of this.inputs) input.value = false;
+		for(let output of this.outputs) output.node.value = false;
+
 		this.cur_node = null;
 		this.cur_wire = null;
 		this.cur_chip = null;
+	}
+
+	CurrentBoard.toJSON = function(name){
+		let output = {};
+		output.name = name;
+		output.input_count = this.inputs.length;
+		output.output_count = this.outputs.length;
+		output.boards = this.boards.map(e=>e.name);
+		output.connections = [];
+		for(let wire of this.wires){
+			let val = {from:'',to:''};
+
+			let from_node = wire.start;
+			if(from_node.source instanceof Input){
+				val.from = this.inputs.indexOf(from_node.source);
+			} else if(from_node.source instanceof Output){
+				val.from = this.outputs.indexOf(from_node.source);
+			} else if(from_node.source instanceof Board){
+				val.from = this.boards.indexOf(from_node.source) + '#' + from_node.index;
+			}
+
+
+			let to_node = wire.end;
+			if(to_node.source instanceof Input){
+				val.to = this.inputs.indexOf(to_node.source);
+			} else if(to_node.source instanceof Output){
+				val.to = this.outputs.indexOf(to_node.source);
+			} else if(to_node.source instanceof Board){
+				val.to = this.boards.indexOf(to_node.source) + '#' + to_node.index;
+			}
+
+			output.connections.push(val);
+
+		}
+		return JSON.stringify(output);
 	}
 })(this);

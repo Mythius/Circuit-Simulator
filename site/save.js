@@ -1,7 +1,7 @@
 class Save{
-	static db = openDatabase('save_data',1,'save_data',10*1024);
+	static db = openDatabase('save_data',1,'save_data',10*10*1024);
 	static init(){
-		Save.sql('CREATE TABLE save_data (name VARCHAR(25), data VARCHAR(255))');
+		Save.sql('CREATE TABLE save_data (name VARCHAR(25), data VARCHAR(10000))');
 	}
 	static async save(name,data){
 		var a = await Save.sql(`SELECT COUNT(*) AS amount FROM save_data AS sd WHERE sd.name == "${name}"`);

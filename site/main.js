@@ -14,20 +14,36 @@ obj('#clear').on('click',e=>{
 
 obj('#input').on('change',e=>{
 	CurrentBoard.setInputs(+obj('#input').value);
-})
+});
 
 obj('#output').on('change',e=>{
 	CurrentBoard.setOutputs(+obj('#output').value);
-})
+});
+
+obj('#create').on('click',e=>{
+	let name = obj('#boardname').value || 'default'+random(0,1000);
+	new Shortcut(CurrentBoard.toJSON(name),name);
+});
+
+upload(obj('#upload'),data=>{
+	let obj = JSON.parse(data);
+	for(let thing of obj){
+		new Shortcut(thing.data,thing.name);
+	}
+});
+
+obj('#download').on('click',e=>{
+	// TEMPRORARY
+	let data = JSON.stringify(Shortcut.CustomPieces);
+	download('data.json',data);
+	// download('file.json',Data.export());
+});
 
 function setupEditor(){
 
 	new Shortcut(inputs=>[inputs[0]&&inputs[1]],'AND',2,1);
 	new Shortcut(inputs=>[inputs[0]||inputs[1]],'OR',2,1);
 	new Shortcut(inputs=>[!inputs[0]],'NOT',1,1);
-	new Shortcut(inputs=>[!(inputs[0]||inputs[1])],'NOR',2,1);
-	new Shortcut(inputs=>[inputs[0]^inputs[1]],'XOR',2,1);
-	new Shortcut(inputs=>[inputs[0]==inputs[4]&&inputs[1]==inputs[5]&&inputs[2]==inputs[6]&&inputs[3]==inputs[7]],'EQUALS',8,1);
 
 }
 
