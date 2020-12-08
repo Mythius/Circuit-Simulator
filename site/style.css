@@ -1,5 +1,7 @@
 body{
 	margin: 0;
+	background-color: #888;
+	user-select: none;
 }
 main{
 	display: block;
@@ -15,6 +17,9 @@ top > *{
 	outline: 0;
 	border: 1px solid black;
 	transition: background-color .2s;
+	margin-bottom: 5px;
+	margin-top: 5px;
+	margin-left: 5px;
 }
 top > button:hover{
 	background-color: #444;
@@ -28,15 +33,23 @@ input[type=file]{
 button{
 	user-select: none;
 }
+h3{
+	text-align: center;
+	color: white;
+	font-family: monospace;
+}
 #editor{
 	background-color: #222;
 }
 #center{
 	display: grid;
 	grid-template-columns: 1000px calc(100% - 1000px);
+	overflow-y: hidden;
 }
 #components{
 	background-color: #888;
+	overflow-y: scroll;
+	height: 600px;
 }
 .comp{
 	display: block;

@@ -23,6 +23,7 @@ obj('#output').on('change',e=>{
 obj('#create').on('click',e=>{
 	let name = obj('#boardname').value || 'default'+random(0,1000);
 	new Shortcut(CurrentBoard.toJSON(name),name);
+	obj('#boardname').value = "";
 });
 
 upload(obj('#upload'),data=>{

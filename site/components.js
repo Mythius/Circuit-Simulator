@@ -69,14 +69,22 @@ class Wire{
 		let prev = this.points[this.points.length-1];
 		if(this.toggleDir){
 			if(done){
-				prev.y = pos.y;
+				if(this.points.length == 1){
+
+				} else {
+					prev.y = pos.y;
+				}
 				this.points.push(pos);
 			} else {
 				this.points.push(new Vector(pos.x,prev.y));
 			}
 		} else {
 			if(done){
-				prev.x = pos.x;
+				if(this.points.length == 1){
+					
+				} else {
+					prev.x = pos.x;
+				}
 				this.points.push(pos);
 			} else {
 				this.points.push(new Vector(prev.x,pos.y));
@@ -87,8 +95,11 @@ class Wire{
 	closeWire(node){
 		this.end = node;
 		this.updateWire(node.pos,true);
+		for(let wire of this.end.wires){
+			wire.remove();
+		}
 		CurrentBoard.wires.push(this);
-		this.end.wires.push(this);
+		this.end.wires = [this];
 		CurrentBoard.cur_node = null;
 		CurrentBoard.cur_wire = null;
 		this.closed = true;
@@ -109,11 +120,21 @@ class Wire{
 	remove(){
 		var ix;
 		ix = this.start.wires.indexOf(this);
+		if(ix == -1) console.error('Wire Not Found');
 		this.start.wires.splice(ix,1);
 		ix = this.end.wires.indexOf(this);
+		if(ix == -1) console.error('Wire Not Found');
 		this.end.wires.splice(ix,1);
 		ix = CurrentBoard.wires.indexOf(this);
+		if(ix == -1) console.error('Wire Not Found');
 		CurrentBoard.wires.splice(ix,1);
+	}
+	straiten(){
+		if(this.closed){
+			let first = this.start.pos.clone();
+			let last = this.end.pos.clone();
+			this.points = [first,last];
+		}
 	}
 }
 
@@ -159,6 +180,10 @@ class Input{
 		this.pos = vector;
 		this.node.pos = new Vector(this.pos.x+this.length,this.pos.y);
 	}
+	reset(){
+		this.value = false;
+		this.node.wires = [];
+	}
 }
 
 class Output{
@@ -192,6 +217,10 @@ class Output{
 		this.pos = vector;
 		this.node.pos = new Vector(this.pos.x+this.length,this.pos.y);
 	}
+	reset(){
+		this.node.value = false;
+		this.node.wires = [];
+	}
 }
 
 class ConnectorNode{
@@ -219,6 +248,7 @@ class ConnectorNode{
 					if(this.type == 'OUTPUT'){
 						CurrentBoard.cur_node = this;
 						CurrentBoard.cur_wire = new Wire(this);
+						obj('#moveComponents').checked = true;
 					} else if(CurrentBoard.cur_wire) {
 						CurrentBoard.cur_wire.closeWire(this);
 					}
@@ -261,9 +291,13 @@ class Board{
 		let outseg = (this.height) / outamount;
 		for(let i=0;i<this.inputs.length;i++){
 			this.inputs[i].pos = new Vector(this.pos.x-this.width/2,this.pos.y + (i+1) * inseg);
+			let wires = this.inputs[i].wires;
+			for(let wire of wires) wire.straiten();
 		}
 		for(let i=0;i<this.outputs.length;i++){
 			this.outputs[i].pos = new Vector(this.pos.x+this.width/2,this.pos.y + (i+1) * outseg);
+			let wires = this.outputs[i].wires;
+			for(let wire of wires) wire.straiten();
 		}
 	}
 	draw(){
@@ -273,7 +307,6 @@ class Board{
 				this.moveTo(mp.add(this.offsetMouse));
 			} else if(!CurrentBoard.cur_chip){
 				let mp = new Vector(mouse.pos.x,mouse.pos.y);
-
 				if(mp.x > this.pos.x - this.width/2 && mp.x < this.pos.x + this.width/2){
 					if(mp.y > this.pos.y && mp.y < this.pos.y + this.height){
 						this.offsetMouse = this.pos.add(mp.mult(-1));
@@ -439,28 +472,45 @@ class PackagedBoard{
 class Shortcut{
 	static CustomPieces = [];
 	constructor(callback,name,inputs,outputs){
+		let el = create('button',name);
+		let x = create('img');
+		x.src = 'xbutton.svg';
+		this.name = name;
+		el.classList.add('comp');
+		x.style.float = 'right';
+		x.style.width = '15px';
+		el.on('click',e=>{
+			if(e.target == el){
+				let board;
+				obj('#moveComponents').checked = false;
+				if(typeof callback == 'string'){
+					board = new CustomBoard(callback);
+				} else if(typeof callback == 'function'){
+					board = new BuiltInBoard(callback,name,inputs,outputs);
+				}
+				if(CurrentBoard.cur_chip){
+					CurrentBoard.cur_chip.color = '#88f';
+				}
+				CurrentBoard.cur_chip = board;
+				CurrentBoard.addBoard(board);
+				board.moveTo(new Vector(100,100));
+			} else if(e.target == x){
+				let del = confirm(`Delete Component ${name}?`);
+				if(del){
+					PackagedBoard.customBoards[name] = undefined;
+					for (var i = Shortcut.CustomPieces.length - 1; i >= 0; i--) {
+						if(Shortcut.CustomPieces[i].name == name) Shortcut.CustomPieces.splice(i,1);
+					}
+					el.remove();
+				}
+			}
+		});
+		obj('#components').appendChild(el);
 		if(typeof callback == 'string'){
 			Shortcut.CustomPieces.push({name,data:callback});
 			PackagedBoard.customBoards[name] = callback;
+			el.appendChild(x);
 		}
-		let el = create('button',name);
-		this.name = name;
-		el.classList.add('comp');
-		el.on('click',e=>{
-			let board;
-			if(typeof callback == 'string'){
-				board = new CustomBoard(callback);
-			} else if(typeof callback == 'function'){
-				board = new BuiltInBoard(callback,name,inputs,outputs);
-			}
-			if(CurrentBoard.cur_chip){
-				CurrentBoard.cur_chip.color = '#88f';
-			}
-			CurrentBoard.cur_chip = board;
-			CurrentBoard.addBoard(board);
-			board.moveTo(new Vector(100,100));
-		});
-		obj('#components').appendChild(el);
 	}
 }
 
@@ -591,8 +641,8 @@ class ShortcutFolder{
 		this.boards = [];
 		this.wires = [];
 
-		for(let input of this.inputs) input.value = false;
-		for(let output of this.outputs) output.node.value = false;
+		for(let input of this.inputs) input.reset();
+		for(let output of this.outputs) output.reset();
 
 		this.cur_node = null;
 		this.cur_wire = null;
