@@ -1,5 +1,7 @@
 const canvas = obj('#editor');
 const ctx = canvas.getContext('2d');
+var fps = 30;
+
 // hide(obj('main'));
 
 obj('#delete').on('click',e=>{
@@ -60,7 +62,7 @@ function setup(){
 }
 
 function loop(){
-	setTimeout(loop,1000/30);
+	setTimeout(loop,1000/fps);
 	ctx.clearRect(-2,-2,canvas.width+2,canvas.height+2);
 	CurrentBoard.draw();
 }
