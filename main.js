@@ -2,6 +2,8 @@ const canvas = obj('#editor');
 const ctx = canvas.getContext('2d');
 // hide(obj('main'));
 
+var calc_output = true;
+
 obj('#delete').on('click',e=>{
 	if(CurrentBoard.cur_chip){
 		CurrentBoard.cur_chip.remove();
@@ -62,7 +64,7 @@ function setup(){
 function loop(){
 	setTimeout(loop,1000/30);
 	ctx.clearRect(-2,-2,canvas.width+2,canvas.height+2);
-	CurrentBoard.draw();
+	CurrentBoard.draw(calc_output);
 }
 
 setup();

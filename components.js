@@ -300,7 +300,7 @@ class Board{
 			for(let wire of wires) wire.straiten();
 		}
 	}
-	draw(){
+	draw(calcOutput=true){
 		if(mouse.down && CurrentBoard.moveChips){
 			if(CurrentBoard.cur_chip == this){
 				let mp = new Vector(mouse.pos.x,mouse.pos.y);
@@ -319,7 +319,7 @@ class Board{
 			CurrentBoard.cur_chip.color = '#88f';
 			CurrentBoard.cur_chip = null;
 		}
-		this.calcOutput();
+		if(calcOutput) this.calcOutput();
 		ctx.beginPath();
 		ctx.fillStyle = this.color;
 		ctx.rect(this.pos.x-this.width/2,this.pos.y,this.width,this.height);
@@ -609,7 +609,7 @@ class ShortcutFolder{
 		this.boards.push(board);
 	}
 
-	CurrentBoard.draw = function(){
+	CurrentBoard.draw = function(calcOutput=true){
 		this.moveChips = !obj('#moveComponents').checked;
 		var col;
 		if(this.cur_chip){
@@ -628,11 +628,11 @@ class ShortcutFolder{
 			this.cur_chip = null;
 		}
 		drawOutline();
-		for(let input of this.inputs) input.draw();
-		for(let output of this.outputs) output.draw();
-		for(let board of this.boards) board.draw();
-		for(let wire of this.wires) wire.draw();
-		if(this.cur_wire) this.cur_wire.draw();
+		for(let input of this.inputs) input.draw(calcOutput);
+		for(let output of this.outputs) output.draw(calcOutput);
+		for(let board of this.boards) board.draw(calcOutput);
+		for(let wire of this.wires) wire.draw(calcOutput);
+		if(this.cur_wire) this.cur_wire.draw(calcOutput);
 	}
 
 	CurrentBoard.clear = function(){
